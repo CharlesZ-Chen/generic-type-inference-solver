@@ -104,13 +104,6 @@ public class OntologyAnnotatedTypeFactory extends BaseAnnotatedTypeFactory imple
                     return false;
                 }
             } else {
-                // if (rhs != null && lhs != null)
-                //?? what the meaning of this code?
-                if (AnnotationUtils.areSameIgnoringValues(rhs, ONTOLOGY)) {
-                    rhs = ONTOLOGY;
-                } else if (AnnotationUtils.areSameIgnoringValues(lhs, ONTOLOGY)) {
-                    lhs = ONTOLOGY;
-                }
                 return super.isSubtype(rhs, lhs);
             }
         }
