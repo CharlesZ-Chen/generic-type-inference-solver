@@ -1,11 +1,12 @@
 package ontology;
 
 import ontology.qual.Ontology;
-import ontology.qual.OntologyTop;
+import ontology.qual.SpecialQualType;
 import ontology.util.OntologyUtils;
 
 import org.checkerframework.common.basetype.BaseAnnotatedTypeFactory;
 import org.checkerframework.common.basetype.BaseTypeChecker;
+import org.checkerframework.framework.qual.TypeUseLocation;
 import org.checkerframework.framework.type.AnnotatedTypeFactory;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
 import org.checkerframework.framework.type.QualifierHierarchy;
@@ -14,6 +15,7 @@ import org.checkerframework.framework.type.treeannotator.ListTreeAnnotator;
 import org.checkerframework.framework.type.treeannotator.TreeAnnotator;
 import org.checkerframework.framework.util.GraphQualifierHierarchy;
 import org.checkerframework.framework.util.MultiGraphQualifierHierarchy.MultiGraphFactory;
+import org.checkerframework.framework.util.defaults.QualifierDefaults;
 import org.checkerframework.javacutil.AnnotationUtils;
 import org.checkerframework.javacutil.TreeUtils;
 
@@ -43,21 +45,28 @@ import com.sun.source.util.TreePath;
 public class OntologyAnnotatedTypeFactory extends BaseAnnotatedTypeFactory implements
         InferrableAnnotatedTypeFactory {
 
-    protected final AnnotationMirror ONTOLOGY, ONTOLOGYBOTTOM, ONTOLOGYTOP;
+    protected final AnnotationMirror ONTOLOGY, ONTOLOGY_BOTTOM, ONTOLOGY_TOP;
     private ExecutableElement ontologyValue = TreeUtils.getMethod("ontology.qual.Ontology", "values",
             0, processingEnv);
 
     public OntologyAnnotatedTypeFactory(BaseTypeChecker checker) {
         super(checker);
+        ONTOLOGY_TOP = OntologyUtils.createOntologyAnnotationByValue(OntologyUtils.convert(SpecialQualType.TOP.toString()), processingEnv);
+        // ONTOLOGY could simple created by AnnotationUtils, because it doesn't need to has a value
         ONTOLOGY = AnnotationUtils.fromClass(elements, Ontology.class);
-        ONTOLOGYBOTTOM = OntologyUtils.createOntologyAnnotation(OntologyUtils.convert(""), processingEnv);
-        ONTOLOGYTOP = AnnotationUtils.fromClass(elements, OntologyTop.class);
+        ONTOLOGY_BOTTOM = OntologyUtils.createOntologyAnnotationByValue(OntologyUtils.convert(SpecialQualType.BOTTOM.toString()), processingEnv);
         postInit();
     }
 
     @Override
     public QualifierHierarchy createQualifierHierarchy(MultiGraphFactory factory) {
-        return new OntologyQualifierHierarchy(factory, ONTOLOGYBOTTOM);
+        return new OntologyQualifierHierarchy(factory, ONTOLOGY_BOTTOM);
+    }
+
+    @Override
+    protected void addCheckedCodeDefaults(QualifierDefaults defaults) {
+        TypeUseLocation[] topLocations = { TypeUseLocation.ALL };
+        defaults.addCheckedCodeDefaults(ONTOLOGY_TOP, topLocations);
     }
 
     @Override
@@ -89,13 +98,14 @@ public class OntologyAnnotatedTypeFactory extends BaseAnnotatedTypeFactory imple
                 String[] lhsValue = getOntologyValue(lhs);
                 Set<String> rSet = new HashSet<String>(Arrays.asList(rhsValue));
                 Set<String> lSet = new HashSet<String>(Arrays.asList(lhsValue));
-                if (lSet.containsAll(rSet)) {
+                if (rSet.containsAll(lSet)) {
                     return true;
                 } else {
                     return false;
                 }
             } else {
                 // if (rhs != null && lhs != null)
+                //?? what the meaning of this code?
                 if (AnnotationUtils.areSameIgnoringValues(rhs, ONTOLOGY)) {
                     rhs = ONTOLOGY;
                 } else if (AnnotationUtils.areSameIgnoringValues(lhs, ONTOLOGY)) {

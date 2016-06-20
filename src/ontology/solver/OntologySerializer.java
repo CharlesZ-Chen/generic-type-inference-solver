@@ -1,9 +1,7 @@
 package ontology.solver;
 
-import ontology.qual.OntologyTop;
 import ontology.util.OntologyUtils;
-
-import org.checkerframework.javacutil.AnnotationUtils;
+import ontology.qual.SpecialQualType;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -43,11 +41,8 @@ public class OntologySerializer extends CnfVecIntSerializer {
     }
 
     private boolean annoIsPresented(AnnotationMirror anno) {
-        if (AnnotationUtils.areSameByClass(anno, OntologyTop.class)) {
-            return true;
-        }
-        String[] values = OntologyUtils.getOntologyValue(anno);
-        return Arrays.asList(values).contains(value);
+        List<String> valuesList = Arrays.asList(OntologyUtils.getOntologyValue(anno));
+        return valuesList.contains(value) || valuesList.contains(SpecialQualType.BOTTOM.toString());
     }
 
     @Override

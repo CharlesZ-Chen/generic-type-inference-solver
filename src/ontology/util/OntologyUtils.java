@@ -27,7 +27,7 @@ public class OntologyUtils {
 
     public static AnnotationMirror genereateOntologyAnnoFromNew(ProcessingEnvironment processingEnv) {
         String className = "sequence";
-        AnnotationMirror ontologyValue = createOntologyAnnotation(convert(className), processingEnv);
+        AnnotationMirror ontologyValue = createOntologyAnnotationByValue(convert(className), processingEnv);
         return ontologyValue;
     }
 
@@ -53,8 +53,9 @@ public class OntologyUtils {
         return builder.build();
     }
 
-    public static AnnotationMirror createOntologyAnnotation(String[] value,
+    public static AnnotationMirror createOntologyAnnotationByValue(String[] value,
             ProcessingEnvironment processingEnv) {
+        assert value != null : "null value unexpected";
         AnnotationBuilder builder = new AnnotationBuilder(processingEnv, Ontology.class);
         builder.setValue("values", value);
         return builder.build();
