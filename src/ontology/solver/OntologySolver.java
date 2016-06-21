@@ -11,7 +11,6 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.TreeSet;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -24,9 +23,11 @@ import javax.lang.model.util.Elements;
 
 import checkers.inference.InferenceSolution;
 import checkers.inference.InferenceSolver;
-import checkers.inference.model.ConstantSlot;
 import checkers.inference.model.Constraint;
 import checkers.inference.model.Slot;
+import constraintgraph.ConstraintGraph;
+import constraintgraph.GraphBuilder;
+import constraintgraph.Vertex;
 
 public class OntologySolver implements InferenceSolver {
 
@@ -40,19 +41,27 @@ public class OntologySolver implements InferenceSolver {
 
         Elements elements = processingEnvironment.getElementUtils();
         Ontology = AnnotationUtils.fromClass(elements, Ontology.class);
+        GraphBuilder graphBuilder = new GraphBuilder(slots, constraints);
+        ConstraintGraph constraintGraph = graphBuilder.buildGraph();
 
-        Collection<String> datatypesUsed = getDatatypesUsed(slots);
         List<SequenceSolver> sequenceSolvers = new ArrayList<>();
-
         // Configure datatype solvers
-        for (String datatype : datatypesUsed) {
-            SequenceSolver solver = new SequenceSolver(datatype, constraints, getSerializer(datatype));
-            sequenceSolvers.add(solver);
+        for (Map.Entry<Vertex, Set<Constraint>> entry : constraintGraph.getIndependentPath().entrySet()) {
+            AnnotationMirror anno = entry.getKey().getValue();
+            if (AnnotationUtils.areSameIgnoringValues(anno, Ontology)) {
+                String[] ontologyValues = OntologyUtils.getOntologyValue(anno);
+                if (ontologyValues.length == 1) {
+                    SequenceSolver solver = new SequenceSolver(ontologyValues[0], entry.getValue(),getSerializer(ontologyValues[0]));
+                    sequenceSolvers.add(solver);
+                }
+            }
         }
 
         List<SequenceSolution> solutions = new ArrayList<>();
         try {
-            solutions = solveInparallel(sequenceSolvers);
+            if (sequenceSolvers.size() > 0) {
+                solutions = solveInparallel(sequenceSolvers);
+            }
         } catch (InterruptedException | ExecutionException e) {
             e.printStackTrace();
         }
@@ -82,23 +91,6 @@ public class OntologySolver implements InferenceSolver {
             solutions.add(future.get());
         }
         return solutions;
-    }
-
-    private Collection<String> getDatatypesUsed(Collection<Slot> slots) {
-        Set<String> types = new TreeSet<>();
-        for (Slot slot : slots) {
-            if (slot instanceof ConstantSlot) {
-                ConstantSlot constantSlot = (ConstantSlot) slot;
-                AnnotationMirror anno = constantSlot.getValue();
-                if (AnnotationUtils.areSameIgnoringValues(anno, Ontology)) {
-                    String[] ontologyValues = OntologyUtils.getOntologyValue(anno);
-                    for (String ontologyValue : ontologyValues) {
-                        types.add(ontologyValue);
-                    }
-                }
-            }
-        }
-        return types;
     }
 
     protected OntologySerializer getSerializer(String datatype) {
